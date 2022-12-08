@@ -2,9 +2,9 @@
 #define ERROR_HANDLER_H
 
 #include <stdio.h>
-#include "./parser.h"
-#include "./options.h"
-#include "./to_print_paths.h"
+#include "parser.h"
+#include "options.h"
+#include "to_print_paths.h"
 #include <sys/stat.h>
 #include <errno.h>
 

@@ -1,6 +1,6 @@
 #include ".runner.h"
-#include "./error_handler.h"
-#include "./to_print_paths.h"
+#include "error_handler.h"
+#include "to_print_paths.h"
 
 /**
  * check_path - This function checks whether the path is a file

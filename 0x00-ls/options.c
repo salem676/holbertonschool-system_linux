@@ -1,5 +1,5 @@
-#include "./options.h"
-#include "./error_handler.h"
+#include "options.h"
+#include "error_handler.h"
 
 /**
  * close_options - This function frees allocated options pointer.

@@ -24,8 +24,8 @@
  */
 typedef struct option_struct
 {
-char *aliases;
-short usages[8];
+	char *aliases;
+	short usages[8];
 } options;
 
 /**

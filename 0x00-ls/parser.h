@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "./options.h"
+#include "options.h"
 
 /**
  * struct paths_struct - Struct that contains files path.
@@ -12,8 +12,8 @@
  */
 typedef struct paths_struct
 {
-        char *list[1024];
-        size_t size;
+	char *list[1024];
+	size_t size;
 } paths;
 
 /**
@@ -38,7 +38,7 @@ void close_paths(paths *paths);
  * If any files argument, the './' path is added as default.
  * @size: numbers in 'args' param - 1.
  * @args: contains arguments given by execution beginning on position one;
- * the first argument is the name of the program. 
+ * the first argument is the name of the program.
  * @paths: pointer to given paths structure in the caller function.
  * @options: pointer to given options structure in the caller function.
  * Returns: void.

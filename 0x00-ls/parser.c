@@ -1,4 +1,4 @@
-#include "./parser.h"
+#include "parser.h"
 
 /**
  * open_paths - initializes paths struct.

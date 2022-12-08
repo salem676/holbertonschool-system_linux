@@ -1,8 +1,8 @@
 #ifndef RUNNER_H
 #define RUNNER_H
 
-#include "./options.h"
-#include "./parser.h"
+#include "options.h"
+#include "parser.h"
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>

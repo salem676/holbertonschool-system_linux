@@ -1,4 +1,4 @@
-#include "./to_print_paths.h"
+#include "to_print_paths.h"
 
 /**
  * add_node - adds node in double linked list at end.
