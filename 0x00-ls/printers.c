@@ -94,9 +94,9 @@ int print_error_message(char *f)
 	char *error_message;
 
 	if (errno == 13)
-		error_message = "hls: cannot open directory %s";
+		error_message = "hls_01: cannot open directory %s";
 	else
-		error_message = "hls: cannot access %s";
+		error_message = "hls_01: cannot access %s";
 
 	sprintf(buffer, error_message, f);
 	perror(buffer);
