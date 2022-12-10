@@ -132,5 +132,5 @@ file_node_t *confirm_sorted_by_size(file_node_t *head)
 			return (sort_file_list_by_size(head));
 	}
 
-	return (head)
+	return (head);
 }
