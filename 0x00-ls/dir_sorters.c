@@ -28,7 +28,6 @@ dir_node_t *sort_dir_list_by_size(dir_node_t *head)
 
 	return (head);
 }
-#include "header.h"
 
 /**
  * sort_dir_list_by_size - sorts a directory list by size
@@ -53,11 +52,7 @@ dir_node_t *sort_dir_list_by_size(dir_node_t *head)
 			this = this->next;
 
 	for (this = head; this->next; this = this->next)
-		if (compare_dirs_by_size(this, this->next))
-			return (sort_dir_list_by_size(head));
-
-	return (head);
-}
+	    
 
 /**
  * compare_dirs_by_size - compare two dirs by size
