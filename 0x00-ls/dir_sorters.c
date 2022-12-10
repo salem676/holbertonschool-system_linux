@@ -30,31 +30,6 @@ dir_node_t *sort_dir_list_by_size(dir_node_t *head)
 }
 
 /**
- * sort_dir_list_by_size - sorts a directory list by size
- * @head: head of list
- * Return: head
- **/
-dir_node_t *sort_dir_list_by_size(dir_node_t *head)
-{
-	dir_node_t *this = head;
-
-	if (!this)
-		return (this);
-
-	while (this->next)
-		if (compare_dirs_by_size(this, this->next))
-		{
-			if (this == head)
-				head = this->next;
-			swap_dirs(this, this->next);
-		}
-		else
-			this = this->next;
-
-	for (this = head; this->next; this = this->next)
-	    
-
-/**
  * compare_dirs_by_size - compare two dirs by size
  * @a: directory node 1
  * @b: directory node 2
