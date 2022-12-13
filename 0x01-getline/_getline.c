@@ -67,7 +67,6 @@ void *createnode(char *src, size_t end, int nl, size_t lstfd, int fd)
 		((listchar *) new)->s[end] = '\0';
 		((listchar *) new)->size = end + 1;
 		((listchar *) new)->next = NULL;
-		/* printf("%lu: %s\n", ((listchar *) new)->line, ((listchar *) new)->s); */
 	}
 	else
 	{
