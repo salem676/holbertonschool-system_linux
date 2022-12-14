@@ -1,42 +1,42 @@
-#ifndef LAPS_H
-#define LAPS_H
-#define READ_SIZE BUFSIZ
+#ifndef GETLINE_H
+#define GETLINE_H
 
-#include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#define DO_DEBUG 0
+
+#if DO_DEBUG
+#define DEBUG(x) (x)
+#else
+#define DEBUG(x) ((void)0)
+#endif
 
 /**
- * struct listfd - singly linked list of file descriptors
- * @fd: file descriptor
- * @rd: if list has been read
- * @head: pointer to head of listchar linked list
- * @next: pointer to next node
+ * struct fd - holds an open file descriptor buffer
+ * @fd: the integer file descriptor
+ * @buf: pointer to the char buffer
+ * @i: current index in the buf
+ * @len: current length of the buf
+ * @next: next node in linked list
  */
-typedef struct listfd
+typedef struct fd
 {
 	int fd;
-	size_t rd;
-	struct listchar *head;
-	struct listfd *next;
-} listfd;
+	char *buf;
+	size_t i;
+	size_t len;
+	struct fd *next;
+} FdBuf;
 
-/**
- * struct listchar - singly linked list of strings
- * @line: line number
- * @s: string
- * @size: size of string
- * @next: pointer to next node
- */
-typedef struct listchar
-{
-	size_t line;
-	char *s;
-	size_t size;
-	struct listchar *next;
-} listchar;
+#define READ_SIZE 1024
 
 char *_getline(const int fd);
+char *read_buf(FdBuf *fb);
+FdBuf *get_fdbuf(FdBuf *head, const int fd);
+char *_strchr(char *s, char c, ssize_t size);
+void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
 
-#endif /* LAPS_H */
+#endif

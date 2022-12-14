@@ -1,269 +1,145 @@
 #include "_getline.h"
 
-static size_t numfd;
-static listfd *fdhead;
-
 /**
- * linknode - links nodes together.
- * @head: pointer to pointer to head node of linked list.
- * @new: new node to link.
- * @sort: whether to sort.
+ * __getline - gets a line of chars from a file descriptor
+ * @fd: the file descriptor to read
+ *
+ * Return: pointer to the line
  */
-void linknode(void *head, void *new, size_t sort)
+char *__getline(const int fd)
 {
-	listchar **cur;
-	listfd **fdcur;
-	/*
-	 * @cur: ptr to ptr to listchar.
-	 * @fdcur: ptr to ptr to listfd.
-	 */
-	if (!sort)
-	{
-		cur = (listchar **) head;
-		while (*cur)
-			cur = &(*cur)->next;
-		((listchar *) new)->next = *cur;
-		*cur = new;
-	}
-	else
-	{
-		fdcur = (listfd **) head;
-		while (*fdcur && ((listfd *) new)->fd > (*fdcur)->fd)
-			fdcur = &(*fdcur)->next;
-		((listfd *) new)->next = *fdcur;
-		*fdcur = new;
-	}
-}
+	static FdBuf head;
+	FdBuf *fb = NULL, *temp;
+	char *line = NULL;
 
-/**
- * createnode - creates new linked list node.
- * @src: string.
- * @end: bytes to copy.
- * @nl: whether to increment line number.
- * @lstfd: if creating listfd node.
- * @fd: file descriptor.
- * Return: created linked list node.
- */
-void *createnode(char *src, size_t end, int nl, size_t lstfd, int fd)
-{
-	void *new;
-	/*
-	 * @new: ptr to void var.
-	 */
-	if (!lstfd)
-	{
-		static size_t line = 1;
-
-		new = (listchar *) malloc(sizeof(listchar));
-		if (!new)
-			return (NULL);
-		((listchar *) new)->line = line;
-		if (nl)
-			++line;
-		((listchar *) new)->s = malloc((end + 1));
-		if (!new)
-			return (NULL);
-		memcpy(((listchar *) new)->s, src, end);
-		((listchar *) new)->s[end] = '\0';
-		((listchar *) new)->size = end + 1;
-		((listchar *) new)->next = NULL;
-	}
-	else
-	{
-		new = (listfd *) malloc(sizeof(listfd));
-		if (!new)
-			return (NULL);
-		((listfd *) new)->fd = fd;
-		((listfd *) new)->rd = 0;
-		((listfd *) new)->head = NULL;
-		((listfd *) new)->next = NULL;
-	}
-	return (new);
-}
-
-/**
- * realloc_parse - changes the size of the memory to new_size or parse lines.
- * @ptr: pointer to memory block.
- * @old_size: old size of memory block.
- * @new_size: new size of memory block.
- * @parseline: whether to parseline.
- * @file: string of entire file.
- * @head: pointer to pointer to head node of linked list.
- * Return: pointer to newly allocated memory.
- */
-void *realloc_parse(void *ptr, size_t old_size, size_t new_size,
-		size_t parseline, char *file, listchar **head)
-{
-	void *newptr;
-	size_t i, start;
-	listchar *new = NULL;
-	/*
-	 * @newptr: ptr to void.
-	 * @i: size_t counter.
-	 * @start: counter.
-	 * @new: ptr to listchar in null.
-	 */
-	if (parseline)
-	{
-		for (start = i = 0; file[i]; ++i)
-			if (file[i] == '\n')
-			{
-				new = createnode(&file[start], i - start, 1, 0, 0);
-				linknode(head, new, 0);
-				start = i + 1;
-			}
-		if (file[start])
-		{
-			new = createnode(&file[start], i - start, 0, 0, 0);
-			linknode(head, new, 0);
-		}
-		if (!new)
-			return ((char *) NULL);
-	}
-	else
-	{
-		if (new_size == 0)
-		{
-			free(ptr);
-			return (NULL);
-		}
-		if (!ptr)
-			return (malloc(new_size));
-		if (new_size <= old_size)
-			return (ptr);
-		newptr = malloc(new_size);
-		if (newptr)
-		{
-			memcpy(newptr, ptr, old_size);
-			free(ptr);
-		}
-	}
-	return (newptr);
-}
-
-/**
- * _strncat - concatenates two strings to at most n bytes.
- * @dest: destination string.
- * @src: string to copy.
- * @n: amount of bytes to copy.
- * Return: pointer to resulting string dest.
- */
-char *_strncat(char *dest, const char *src, size_t n)
-{
-	size_t dest_len;
-	size_t i;
-	/*
-	 * @dest_len: size_t type lenght.
-	 * @i: counter.
-	 */
-	for (i = 0; dest[i]; ++i)
-		;
-	dest_len = i;
-	for (i = 0; i < n && src[i]; ++i)
-		dest[dest_len + i] = src[i];
-	dest[dest_len + i] = '\0';
-	return (dest);
-}
-
-/**
- * parsefd - parses given fd and creates appropriate listfd.
- * @fdhead: pointer to pointer to fdhead node.
- * @fd: file descriptor.
- * @file: string to free if necessary.
- * Return: newly created or matching listfd.
- */
-listfd *parsefd(listfd **fdhead, const int fd, char *file)
-{
-	listfd *fdcur;
-	listchar *cur, *tmp;
-	/*
-	 * @fdcur: ptr to listfd current.
-	 * @cur: ptr to listchar current.
-	 * @tmp: ptr to listchar temporal.
-	 */
 	if (fd == -1)
 	{
-		while (*fdhead)
+		if (head.buf)
+			head.buf = (free(head.buf), NULL);
+		for (fb = head.next; fb;)
 		{
-			cur = (*fdhead)->head;
-			while (cur)
+			if (fb->buf)
 			{
-				tmp = cur;
-				cur = cur->next;
-				free(tmp->s);
-				free(tmp);
+				free(fb->buf);
+				fb->buf = NULL;
 			}
-			fdcur = *fdhead;
-			*fdhead = (*fdhead)->next;
-			free(fdcur);
+			temp = fb;
+			fb = fb->next;
+			free(temp);
 		}
-		free(file);
+		memset(&head, 0, sizeof(head));
 		return (NULL);
 	}
-	fdcur = *fdhead;
-	while (fdcur)
-	{
-		if (fd == fdcur->fd)
-			break;
-		fdcur = fdcur->next;
-	}
-	if (!fdcur)
-	{
-		fdcur = createnode('\0', 0, 0, 1, fd);
-		if (!fdcur)
-			return (NULL);
-		linknode(fdhead, fdcur, 1);
-		++numfd;
-	}
-	return (fdcur);
+	fb = get_fdbuf(&head, fd);
+	if (fb)
+		line = read_buf(fb);
+	if (line && line[0] == '\n' && !line[1])
+		line[0] = 0;
+	return (line);
 }
 
 /**
- * _getline - reads an entire line from a file descriptor.
- * @fd: file descriptor to read from.
- * Return: null-terminated string excluding newline character
- * NULL on EOF or error.
+ * read_buf - reads into the buffer
+ * @fb: the fd buf struct
+ *
+ * Return: 0 on success else -1 on error.
  */
-char *_getline(const int fd)
+char *read_buf(FdBuf *fb)
 {
-	size_t linsiz = READ_SIZE + 1;
-	char *line, buf[READ_SIZE] = {0}, *file = malloc(linsiz);
-	ssize_t byte;
-	listfd *fdcur;
-	listchar *tmp;
+	char buf[READ_SIZE + 1], *p, *line;
+	ssize_t r = 0;
 
-	if (!file)
-		return (NULL);
-	memset(file, 0, linsiz);
-	fdcur = parsefd(&fdhead, fd, file);
-	if (!fdcur)
-		return (NULL);
-	if (!fdcur->rd)
-		for (; (byte = read(fd, buf, READ_SIZE)) > 0; fdcur->rd = 1)
-		{
-			_strncat(file, buf, READ_SIZE);
-			linsiz += READ_SIZE;
-			file = realloc_parse(file, linsiz - READ_SIZE, linsiz, 0, NULL, NULL);
-			if (!file)
-				return (NULL);
-			memset(buf, 0, READ_SIZE);
-		}
-	if (fdcur->rd)
-		line = realloc_parse(NULL, 0, 0, 1, file, &fdcur->head);
-	free(file);
-	if (!fdcur->head)
+	p = __strchr(fb->buf + fb->i, '\n', fb->len - fb->i);
+	if (!fb->len || fb->i >= fb->len || !p)
 	{
-		if (numfd == 1)
-			free(fdcur);
-		return (NULL);
+		while (1)
+		{
+			r = read(fb->fd, buf, READ_SIZE);
+			if (r < 0 || (r == 0 && !fb->len))
+				return (fb->buf ? (free(fb->buf), NULL) : NULL);
+			if (r == 0)
+			{
+				p = fb->buf + fb->len;
+				break;
+			}
+			fb->buf = _realloc(fb->buf, fb->len, fb->len + r + 1);
+			if (!fb->buf)
+				return (NULL);
+			memcpy(fb->buf + fb->len, buf, r), fb->len += r;
+			p = __strchr(fb->buf + (fb->len - r), '\n', r);
+			if (p)
+			{
+				fb->buf[fb->len] = 0;
+				break;
+			}
+		}
 	}
-	tmp = fdcur->head;
-	fdcur->head = fdcur->head->next;
-	line = malloc(tmp->size);
+	*p = '\0';
+	line = malloc(1 + (p - (fb->buf + fb->i)));
 	if (!line)
 		return (NULL);
-	memcpy(line, tmp->s, tmp->size);
-	free(tmp->s);
-	free(tmp);
+	memcpy(line, fb->buf + fb->i, 1 + (p - (fb->buf + fb->i)));
+	fb->i = (p - fb->buf) + 1;
+	if (fb->i >= fb->len)
+	{
+		fb->i = fb->len = 0;
+		fb->buf = (free(fb->buf), NULL);
+	}
 	return (line);
+}
+
+/**
+ * get_fdbuf - adds a car to linked list
+ * @head: pointer to head node
+ * @fd: file descriptor of buffer to get
+ * Return: pointer to the fd buf node
+ */
+FdBuf *get_fdbuf(FdBuf *head, const int fd)
+{
+	FdBuf *node;
+
+	if (!head->buf && !head->fd && !head->next)
+	{
+		head->fd = fd;
+		return (head);
+	}
+	for (; head->next && head->next->fd <= fd; head = head->next)
+		;
+	if (head->fd == fd)
+		return (head);
+	node = malloc(sizeof(*node));
+	if (!node)
+		return (NULL);
+	if (fd < head->fd) /* need to copy head over and replace */
+	{
+		memcpy(node, head, sizeof(*head));
+		memset(head, 0, sizeof(*head));
+		head->fd = fd;
+		head->next = node;
+		return (head);
+	}
+	memset(node, 0, sizeof(*node));
+	node->fd = fd;
+	node->next = head->next;
+	head->next = node;
+	return (node);
+}
+
+/**
+ **__strchr - locates a character in a string
+ *@s: the string to be parsed
+ *@c: the character to look for
+ *@size: number of bytes to search
+ *Return: (s) a pointer to the memory area s
+ */
+char *__strchr(char *s, char c, ssize_t size)
+{
+	if (!s)
+		return (NULL);
+	do {
+		if (*s == c)
+			return (s);
+		s++;
+	} while (--size > 0);
+	return (NULL);
 }
