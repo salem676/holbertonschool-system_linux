@@ -64,3 +64,4 @@ char *get_sym_visibility(elf_t *elf_header, size_t i)
 		case STV_PROTECTED: return ("PROTECTED");
 		default: return ("UNKNOWN");
 	}
+}
