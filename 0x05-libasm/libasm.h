@@ -17,7 +17,9 @@ char *asm_strpbrk(const char *s, const char *accept);
 size_t asm_puti(int n);
 size_t asm_puti_base(int n, const char *base);
 
-#endif#ifndef LIBASM_H
+#endif
+
+#ifndef LIBASM_H
 #define LIBASM_H
 
 size_t asm_strlen(const char *str);
