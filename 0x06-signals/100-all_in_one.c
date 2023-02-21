@@ -1,11 +1,5 @@
 #include "signals.h"
 
-/**
- * print_gotcha - receives signal
- * @signal: the signal number received
- * @info: signal info
- * @name: signal name
- */
 void print_gotcha(int signal, siginfo_t *info, void *name)
 {
 	(void)signal;
@@ -13,11 +7,6 @@ void print_gotcha(int signal, siginfo_t *info, void *name)
 	psiginfo(info, "Caught");
 }
 
-/**
- * all_in_one - set a handler for the signal SIGINT
- *
- * Return: Return 0 on success, or -1 on error
- */
 void all_in_one(void)
 {
 	struct sigaction act;
