@@ -4,6 +4,7 @@
  * sigset_init - function for init
  * @set: sigset_t param ptr
  * @signals: int var prm ptr
+ * Return: -1 or 0
  **/
 int sigset_init(sigset_t *set, int *signals)
 {
@@ -16,6 +17,7 @@ int sigset_init(sigset_t *set, int *signals)
 /**
  * signals_block - function block
  * @signals: int var prm ptr
+ * Return: -1 or 0
  **/
 int signals_block(int *signals)
 {
