@@ -4,6 +4,7 @@
  * sigset_init - method
  * @set: ptr to sigset_t
  * @signals: ptr to int
+ * Return: -1 or 0
  **/
 
 int sigset_init(sigset_t *set, int *signals)
@@ -17,6 +18,7 @@ int sigset_init(sigset_t *set, int *signals)
 /**
  * signals_unblock - playing pocker
  * @signals: ptr to int
+ * Return: -1 or 0
  **/
 int signals_unblock(int *signals)
 {
