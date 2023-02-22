@@ -1,5 +1,10 @@
 #include "signals.h"
 
+/**
+ * sigset_init - function for init
+ * @set: sigset_t param ptr
+ * @signals: int var prm ptr
+ **/
 int sigset_init(sigset_t *set, int *signals)
 {
 	for (sigemptyset(set); *signals; signals++)
@@ -8,6 +13,10 @@ int sigset_init(sigset_t *set, int *signals)
 	return (0);
 }
 
+/**
+ * signals_block - function block
+ * @signals: int var prm ptr
+ **/
 int signals_block(int *signals)
 {
 	sigset_t set;

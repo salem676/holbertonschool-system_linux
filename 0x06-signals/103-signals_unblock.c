@@ -1,5 +1,11 @@
 #include "signals.h"
 
+/**
+ * sigset_init - method
+ * @set: ptr to sigset_t
+ * @signals: ptr to int
+ **/
+
 int sigset_init(sigset_t *set, int *signals)
 {
 	for (sigemptyset(set); *signals; signals++)
@@ -8,6 +14,10 @@ int sigset_init(sigset_t *set, int *signals)
 	return (0);
 }
 
+/**
+ * signals_unblock - playing pocker
+ * @signals: ptr to int
+ **/
 int signals_unblock(int *signals)
 {
 	sigset_t set;
