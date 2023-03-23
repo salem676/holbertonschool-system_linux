@@ -1,123 +1,157 @@
 #include "hnm.h"
-/* fopen fread rewind fprintf fclose */
+/* fseek fread */
 #include <stdio.h>
-/* memcmp strerror memset */
-#include <string.h>
-/* stat S_ISREG */
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-/* free */
+/* malloc free */
 #include <stdlib.h>
 
 
-/* stat strerror S_ISREG fopen fread memcmp rewind */
 /**
- * openELF - attempts to open an ELF for parsing and printing
+ * getSymTables - selects function to get symbol tables based on 32 or
+ * 64 configuration in ELF
  *
  * @state: struct containing file data and info for error printing
  * Return: 1 on failure, 0 on success
  */
-int openELF(nm_state *state)
+int getSymTables(nm_state *state)
 {
-	struct stat statbuf;
-	char magic[(EI_NIDENT / 2)];
+	if (state->ELF_32bit)
+		return (get32bitSymTables(state));
+	else
+		return (get64bitSymTables(state));
+}
 
-	errno = 0;
-	if (stat(state->f_name, &statbuf) < 0)
-	{
-		if (errno == ENOENT)
-			errorMsg("'%s': No such file\n", NULL, state);
-		else
-			errorMsg("%s: %s\n", strerror(errno), state);
-		return (1);
-	}
-	if (!S_ISREG(statbuf.st_mode))
-	{
-		errorMsg("Warning: '%s' is not an ordinary file\n",
-			 NULL, state);
-		return (1);
-	}
-	/* nm skips files of size 0 with an exit code of 1 */
-	if (statbuf.st_size == 0)
-		return (1);
-	state->f_size = statbuf.st_size;
 
-	state->f_stream = fopen(state->f_name, "rb");
-	if (state->f_stream == NULL)
+/* malloc fseek fread */
+/**
+ * get64bitSymTables - reads ELF and stores symbol tables in state
+ *
+ * @state: struct containing file data and info for error printing
+ * Return: 1 on failure, 0 on success
+ */
+int get64bitSymTables(nm_state *state)
+{
+	Elf64_Sym *sym_tab = NULL;
+	Elf64_Shdr *section = NULL;
+	unsigned int i, j, num_sym;
+
+	for (i = 0; i < state->f_header.e_shnum; i++)
 	{
-		errorMsg("%s: %s\n", strerror(errno), state);
-		return (1);
+		section = state->s_headers + i;
+		if (section->sh_type == SHT_SYMTAB)
+		{
+			state->symtab_sh = section;
+
+			num_sym = section->sh_size / section->sh_entsize;
+			sym_tab = malloc(sizeof(Elf64_Sym) * num_sym);
+			if (!sym_tab)
+				return (1);
+
+			if (fseek(state->f_stream, section->sh_offset,
+				  SEEK_SET) == -1)
+				return (1);
+
+			if (fread(sym_tab, sizeof(Elf64_Sym), num_sym,
+				  state->f_stream) != num_sym)
+				return (1);
+
+			if (state->big_endian)
+			{
+				for (j = 0; j < num_sym; j++)
+					bswapElf64_Sym(sym_tab + j);
+			}
+
+			/* state->symtab_st 64 bit by default */
+			state->symtab_st = sym_tab;
+		}
 	}
-	/* initial check of ELF magic in first 8 bytes */
-	if (fread(magic, (EI_NIDENT / 2), 1, state->f_stream) != 1 ||
-	    memcmp(ELFMAG, magic, SELFMAG) != 0)
-	{
-		errorMsg("%s: File format not recognized\n",
-			 NULL, state);
-		return (1);
-	}
-	rewind(state->f_stream);
 
 	return (0);
 }
 
 
-/* fprintf */
+/* malloc fseek fread free */
 /**
- * errorMsg - formats error printing
+ * get32bitSymTables - reads ELF and stores symbol tables in state
  *
- * @format: error format string
- * @err_str: optional second string containing errno string
  * @state: struct containing file data and info for error printing
+ * Return: 1 on failure, 0 on success
  */
-void errorMsg(char *format, char *err_str, nm_state *state)
+int get32bitSymTables(nm_state *state)
 {
-	fprintf(stderr, "%s: ", state->exec_name);
-	if (err_str == NULL)
-		fprintf(stderr, format, state->f_name);
-	else
-		fprintf(stderr, format, state->f_name, err_str);
+	Elf32_Sym *sym_tab32 = NULL;
+	Elf64_Sym *sym_tab64 = NULL;
+	Elf64_Shdr *section = NULL;
+	unsigned int i, j, num_sym;
+
+	for (i = 0; i < state->f_header.e_shnum; i++)
+	{
+		section = state->s_headers + i;
+		if (section->sh_type == SHT_SYMTAB)
+		{
+			state->symtab_sh = section;
+
+			num_sym = section->sh_size / section->sh_entsize;
+			sym_tab32 = malloc(sizeof(Elf32_Sym) * num_sym);
+			sym_tab64 = malloc(sizeof(Elf64_Sym) * num_sym);
+			if (!sym_tab32 || !sym_tab64)
+				return (1);
+
+			if (fseek(state->f_stream, section->sh_offset,
+				  SEEK_SET) == -1)
+				return (1);
+			if (fread(sym_tab32, sizeof(Elf32_Sym), num_sym,
+				  state->f_stream) != num_sym)
+				return (1);
+
+			if (state->big_endian)
+			{
+				for (j = 0; j < num_sym; j++)
+					bswapElf32_Sym(sym_tab32 + j);
+			}
+
+			/* state->symtab_st is 64 bit, need to promote values */
+			for (j = 0; j < num_sym; j++)
+				E32SymToE64Sym(sym_tab32 + j, sym_tab64 + j);
+			free(sym_tab32);
+			state->symtab_st = sym_tab64;
+		}
+	}
+	return (0);
 }
 
 
-/* memset */
 /**
- * initState - initializes state struct at start
+ * bswapElf64_Sym - byte swaps all little endian values in a Elf64_Sym
+ * to their big endian versions
  *
- * @state: struct containing file data and info for error printing
+ * @sym64: struct to byte swap
  */
-void initState(nm_state *state)
+void bswapElf64_Sym(Elf64_Sym *sym64)
 {
-	state->exec_name = NULL;
-	state->f_stream = NULL;
-	state->f_size = 0;
-	state->big_endian = false;
-	state->ELF_32bit = false;
-	memset(&(state->f_header), 0, sizeof(Elf64_Ehdr));
-	state->s_headers = NULL;
-	state->symtab_sh = NULL;
-	state->symtab_st = NULL;
+	sym64->st_name   = __builtin_bswap32(sym64->st_name);
+	/* st_info is unsigned char - only 1 btye, no swap */
+	/* st_other is unsigned char - only 1 btye, no swap */
+	sym64->st_shndx  = __builtin_bswap16(sym64->st_shndx);
+	sym64->st_value = __builtin_bswap64(sym64->st_value);
+	sym64->st_size  = __builtin_bswap64(sym64->st_size);
 }
 
 
-/* fclose free */
 /**
- * closeState - closes file stream and frees all memory in state
+ * bswapElf32_Sym - byte swaps all little endian values in a Elf32_Sym
+ * to their big endian versions
  *
- * @state: struct containing file data and info for error printing
+ * @sym32: struct to byte swap
  */
-void closeState(nm_state *state)
+void bswapElf32_Sym(Elf32_Sym *sym32)
 {
-	if (state->f_stream != NULL)
-		fclose(state->f_stream);
+	/* note: Elf32_Sym members in different order than in Elf64_Sym */
 
-	if (state->s_headers != NULL)
-		free(state->s_headers);
-
-	/* state->symtab_sh freed as part of state->s_headers */
-
-	if (state->symtab_st != NULL)
-		free(state->symtab_st);
+	sym32->st_name   = __builtin_bswap32(sym32->st_name);
+	sym32->st_value = __builtin_bswap32(sym32->st_value);
+	sym32->st_size  = __builtin_bswap32(sym32->st_size);
+	/* st_info is unsigned char - only 1 btye, no swap */
+	/* st_other is unsigned char - only 1 btye, no swap */
+	sym32->st_shndx  = __builtin_bswap16(sym32->st_shndx);
 
 }
