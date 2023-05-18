@@ -1,88 +1,73 @@
 #include "multithreading.h"
-#include "22-prime_factors_helpers.c"
-#include <stdlib.h>
-
-
-__attribute__((constructor)) void tasks_mutex_init(void)
-{
-	pthread_mutex_init(&tasks_mutex, NULL);
-}
-
-__attribute__((destructor)) void tasks_mutex_destroy(void)
-{
-	pthread_mutex_destroy(&tasks_mutex);
-}
-
 
 /**
- * create_task - creates a new task structure and returns a pointer to it
- * @entry: pointer to the entry function of the task
- * @param: parameter to be passed to entry function
- * Return: pointer to the created task structure
- **/
+ * create_task - create task structure
+ * @entry: is a pointer to the entry function of the task
+ * @param: is the parameter that will later be passed to the entry function
+ * Return: a pointer to the created task structure
+ */
 task_t *create_task(task_entry_t entry, void *param)
 {
-	task_t *task = malloc(sizeof(task_t));
-	static unsigned int id;
+	task_t *new_task = NULL;
 
-	if (task)
-	{	task->entry = entry;
-		task->param = param;
-		task->lock = tasks_mutex;
-		task->status = PENDING;
-		task->result = NULL;
-		task->id = id++;
-	}
+	new_task = calloc(1, sizeof(task_t));
+	if (!new_task)
+		return (NULL);
 
-	return (task);
+	new_task->entry = entry;
+	new_task->param = param;
+	new_task->status = PENDING;
+	new_task->result = NULL;
+	/*	new_task->lock = PTHREAD_MUTEX_INITIALIZER;*/
+
+	return (new_task);
 }
 
 /**
- * destroy_task - destroys a task
- * @task: task to destroy
- **/
+ * destroy_task - destroy task structure
+ * @task:  pointer to the task to destroy
+ * Return: Nothing
+ */
 void destroy_task(task_t *task)
 {
-	if (task)
+	if (task->result)
 	{
-		list_destroy(task->result, free);
-		free(task->result);
-		free(task);
+		list_destroy((list_t *) task->result, free);
+		free((list_t *) task->result);
 	}
+	free(task);
 }
 
 /**
- * exec_tasks - executes a list of tasks
- * @tasks: NULL-terminated list of tasks
- * Return: ???
- **/
+ * exec_tasks - run through the list of tasks and execute them
+ * @tasks: pointer to the list of tasks to be executed
+ * Return: return NULL as its return value will not be retrieved
+ */
 void *exec_tasks(list_t const *tasks)
 {
-	int tasks_pending = 1, task_id;
-	node_t *node;
+	node_t *node = NULL;
+	task_t *task = NULL;
+	int i = 0;
 
-	if (tasks == NULL)
-		pthread_exit(NULL);
-
-	while (tasks_pending)
-		for (tasks_pending = 0, node = tasks->head; node; node = node->next)
-			if (get_task_status(node->content) == PENDING)
-			{
-				tasks_pending = 1;
-				task_id = ((task_t *)node->content)->id;
-				set_task_status(node->content, STARTED);
-				tprintf("[%02d] Started\n", task_id);
-				if (exec_task(node->content))
-				{
-					set_task_status(node->content, SUCCESS);
-					tprintf("[%02d] Success\n", task_id);
-				}
-				else
-				{
-					set_task_status(node->content, FAILURE);
-					tprintf("[%02d] Failure\n", task_id);
-				}
-			}
+	node = tasks->head;
+	while (node)
+	{
+		task = (task_t *) node->content;
+		if (task->status == PENDING)
+		{
+			task->status = STARTED;
+			tprintf("[%02d] Started\n", i);
+			task->result = (void *)
+				(((list_t *(*) (char const *)) task->entry)((char const *) task->param));
+			tprintf("[%02d] Success\n", i);
+			if (task->result == NULL)
+				task->status = FAILURE;
+			else
+				task->status = SUCCESS;
+		}
+		node = node->next;
+		i++;
+	}
 
 	return (NULL);
 }

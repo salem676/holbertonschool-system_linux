@@ -1,35 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "multithreading.h"
 
+static pthread_mutex_t task_lock;
+
 /**
- * create_task - create task structure
- * @entry: is a pointer to the entry function of the task
- * @param: is the parameter that will later be passed to the entry function
- * Return: a pointer to the created task structure
- */
-task_t *create_task(task_entry_t entry, void *param)
+  * construct_task_mutex - builds mutex before main function runs using a
+  * *		      GCC constructor attribute
+  */
+__attribute__((constructor))void construct_task_mutex(void)
 {
-	task_t *new_task = NULL;
-
-	new_task = calloc(1, sizeof(task_t));
-	if (!new_task)
-		return (NULL);
-
-	new_task->entry = entry;
-	new_task->param = param;
-	new_task->status = PENDING;
-	new_task->result = NULL;
-	/*	new_task->lock = PTHREAD_MUTEX_INITIALIZER;*/
-
-	return (new_task);
+	pthread_mutex_init(&task_lock, NULL);
 }
 
 /**
- * destroy_task - destroy task structure
- * @task:  pointer to the task to destroy
- * Return: Nothing
+  * destroy_task_mutex - destroys mutex after main function runs using a
+  * *		      GCC destructor attribute
+  */
+__attribute__((destructor))void destroy_task_mutex(void)
+{
+	pthread_mutex_destroy(&task_lock);
+}
+
+
+
+/**
+ * create_task - desc
+ * @entry: entry
+ * @param: param
+ * Return: task_t pointer
+ */
+task_t *create_task(task_entry_t entry, void *param)
+{C99(
+	task_t src = (task_t){entry, param, PENDING, NULL, task_lock};
+	task_t *dst = calloc(1, sizeof(*dst));
+	if (!dst) return (NULL);
+	return (memcpy(dst, &src, sizeof(src)));
+);}
+
+/**
+ * destroy_task - desc
+ * @task:  task_t pointer
  */
 void destroy_task(task_t *task)
 {
+	if (!task) return;
 	if (task->result)
 	{
 		list_destroy((list_t *) task->result, free);
@@ -39,35 +55,30 @@ void destroy_task(task_t *task)
 }
 
 /**
- * exec_tasks - run through the list of tasks and execute them
- * @tasks: pointer to the list of tasks to be executed
- * Return: return NULL as its return value will not be retrieved
+ * exec_tasks - execute tasks
+ * @tasks: list_t
+ * Return: NULL
  */
 void *exec_tasks(list_t const *tasks)
-{
-	node_t *node = NULL;
-	task_t *task = NULL;
-	int i = 0;
-
-	node = tasks->head;
-	while (node)
+{C99(
+	if (!tasks) return (NULL);
+	node_t *node = tasks->head;
+	size_t i = 0;
+	for (; node && i < tasks->size; i++, node = node->next)
 	{
-		task = (task_t *) node->content;
-		if (task->status == PENDING)
+		task_t* t = (task_t *)node->content;
+		pthread_mutex_lock(&task_lock);
+		if (t->status == PENDING)
 		{
-			task->status = STARTED;
-			tprintf("[%02d] Started\n", i);
-			task->result = (void *)
-				(((list_t *(*) (char const *)) task->entry)((char const *) task->param));
-			tprintf("[%02d] Success\n", i);
-			if (task->result == NULL)
-				task->status = FAILURE;
-			else
-				task->status = SUCCESS;
+			t->status = STARTED;
+			pthread_mutex_unlock(&task_lock);
+			tprintf("[%02lu] Started\n", i);
+			t->result = t->entry(t->param);
+			t->status = t->result ? SUCCESS : FAILURE;
+			tprintf("[%02lu] %s\n", i, t->result ? "Success" : "Failure");
 		}
-		node = node->next;
-		i++;
+		else
+			pthread_mutex_unlock(&task_lock);
 	}
-
 	return (NULL);
-}
+);}

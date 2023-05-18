@@ -1,49 +1,41 @@
+#include <stdio.h>
+#include <stdarg.h>
 #include "multithreading.h"
 
-static pthread_mutex_t lock_mutex;
-
-void initialize_mutex(void) __attribute__((constructor));
-
-void destroy_mutex(void) __attribute__((destructor));
+static pthread_mutex_t lock;
 
 /**
-* initialize_mutex - initialize the mutex
-* Return: Nothing
-*/
-void initialize_mutex(void)
+  * construct_mutex - builds mutex before main function runs using a
+  * *		      GCC constructor attribute
+  */
+__attribute__((constructor))void construct_mutex(void)
 {
-	pthread_mutex_init(&lock_mutex, NULL);
+	pthread_mutex_init(&lock, NULL);
 }
 
 /**
-* destroy_mutex - destroy the mutex
-* Return: Nothing
-*/
-void destroy_mutex(void)
+  * destroy_mutex - destroys mutex after main function runs using a
+  * *		      GCC desstructor attribute
+  */
+__attribute__((destructor))void destroy_mutex(void)
 {
-	pthread_mutex_destroy(&lock_mutex);
+	pthread_mutex_destroy(&lock);
 }
 
+
 /**
- * tprintf -  print out a given formatted string and the  calling thread ID
- * @format: is string format
- * Return: 0 on success
+ * tprintf - takes a format string to print and prints it's thread id
+ * @fmt: format string
+ * Return: On success, positive int of characters printed, or negative on failure
  */
-int tprintf(char const *format, ...)
-{
-	va_list args;
-	pthread_t self;
-
-	pthread_mutex_lock(&lock_mutex);
-
-	self = pthread_self();
-	setbuf(stdout, NULL);
-	va_start(args, format);
-	printf("[%lu] ", self);
-	vprintf(format, args);
-	va_end(args);
-
-	pthread_mutex_unlock(&lock_mutex);
-
-	return (0);
-}
+int tprintf(char const *fmt, ...)
+{C99(
+	va_list ap;
+	va_start(ap, fmt);
+	pthread_mutex_lock(&lock);
+	int c = printf("[%lu] ", pthread_self());
+	c += vprintf(fmt, ap);
+	pthread_mutex_unlock(&lock);
+	va_end(ap);
+	return (c);
+);}
