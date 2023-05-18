@@ -1,33 +1,21 @@
+#include "list.h"
+#include <stdio.h>	/* debug */
+
 /**
- * prime_factors - factors a number into a list of prime factors
- * @s: string representation of the number to factor
- * Return: list_t of prime factors
- **/
+ * prime_factors - factorise a number into a list of prime factors
+ * @s: string representation of the number to factorise
+ *
+ * Return: list of prime factors
+ */
 list_t *prime_factors(char const *s)
 {
-	unsigned long n = strtoul(s, NULL, 10);
-	unsigned long *tmp, p = 2;
-	list_t *list = malloc(sizeof(list_t));
+	list_t *list;
 
-	list_init(list);
-	while (p * p <= n)
-	{
-		while (n % p == 0)
-		{
-			tmp = malloc(sizeof(unsigned long));
-			*tmp = p;
-			list_add(list, (void *)tmp);
-			n /= p;
-		}
-
-		p += 1 + (p != 2);
-	}
-
-	if (n >= 2)
-	{
-		tmp = malloc(sizeof(unsigned long));
-		*tmp = n;
-		list_add(list, (void *)tmp);
-	}
+	if (s == NULL)
+		return (NULL);
+	list = malloc(sizeof(*list));
+	if (list == NULL)
+		return (NULL);
+	list = list_init(list);
 	return (list);
 }
